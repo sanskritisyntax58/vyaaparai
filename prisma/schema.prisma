@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Startup {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  ideaPrompt      String
+  businessName    String
+  tagline         String
+  description     String
+  logoUrl         String?
+  theme           String?  @default("blue")
+  
+  // JSON array for products
+  products        String
+  
+  // Relations
+  website         Website?
+  businessPlan    BusinessPlan?
+}
+
+model Website {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  html        String
+  
+  startupId   String   @unique
+  startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+}
+
+model BusinessPlan {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  marketingPlan  String?
+  pitchDeck      String?
+  
+  startupId      String   @unique
+  startup        Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+}
