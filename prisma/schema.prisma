@@ -16,6 +16,8 @@ model Startup {
   description     String
   logoUrl         String?
   theme           String?  @default("blue")
+  isFavorite      Boolean  @default(false)
+  elevatorPitch   String?
   
   // JSON array for products
   products        String
@@ -39,6 +41,11 @@ model BusinessPlan {
   createdAt      DateTime @default(now())
   marketingPlan  String?
   pitchDeck      String?
+  team           String?  // JSON string
+  financials     String?  // JSON string
+  roadmap        String?  // JSON string
+  competitors    String?  // JSON string
+  mockups        String?  // JSON string
   
   startupId      String   @unique
   startup        Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)

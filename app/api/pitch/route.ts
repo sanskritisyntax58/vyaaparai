@@ -16,64 +16,46 @@ export async function POST(req: Request) {
     }
 
     const startupRecord = await prisma.startup.findUnique({
-      where: { id: startupId },
-      include: { businessPlan: true }
+      where: { id: startupId }
     });
 
     if (!startupRecord) {
       return NextResponse.json({ error: "Startup not found" }, { status: 404 });
     }
 
-    if (startupRecord.businessPlan?.pitchDeck) {
-       return NextResponse.json({ markdown: startupRecord.businessPlan.pitchDeck });
-    }
-
-    const { businessName, tagline, description, products } = startupRecord;
-    const parsedProducts = JSON.parse(products || "[]");
+    const { businessName, tagline, description } = startupRecord;
 
     const prompt = `
-Generate a textual Pitch Deck structure for a startup seeking seed funding:
-
-Startup Name: ${businessName}
+Generate a compelling 60-second elevator pitch transcript for a startup called ${businessName}.
 Tagline: ${tagline}
 Description: ${description}
-Products: ${parsedProducts.join(", ")}
 
-Generate a Slide-by-Slide Markdown document. Include these classic slides:
-Slide 1: Title & Vision
-Slide 2: The Problem
-Slide 3: The Solution
-Slide 4: Market Size
-Slide 5: Product Setup
-Slide 6: Business Model
-Slide 7: Go-To-Market
-Slide 8: Financial Projections
-Slide 9: The Target Ask
-
-Make it compelling, professional, and convincing for a VC.
+The transcript should be professional, energetic, and structured as a spoken pitch.
+Include a hook, the problem, the solution, and a call to action.
+Keep it between 120-150 words (approximately 60 seconds of speaking time).
+Do not include any speaker notes or bracketed text. Just the spoken words.
 `;
 
     const completion = await client.chat.completions.create({
       model: "llama-3.1-8b-instant",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.8,
+      messages: [
+        { role: "system", content: "You are a professional startup pitch coach. Write persuasive and natural sounding pitch transcripts." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
     });
 
-    let markdown = completion.choices[0].message.content || "Pitch Generation Failed.";
-    markdown = markdown.trim();
+    const transcript = completion.choices[0].message.content?.trim() || "";
 
-    const plan = await prisma.businessPlan.upsert({
-      where: { startupId },
-      create: {
-        startupId,
-        pitchDeck: markdown
-      },
-      update: {
-        pitchDeck: markdown
+    // Save to the startup record
+    const updated = await prisma.startup.update({
+      where: { id: startupId },
+      data: {
+        elevatorPitch: transcript
       }
     });
 
-    return NextResponse.json({ markdown: plan.pitchDeck });
+    return NextResponse.json({ transcript: updated.elevatorPitch });
 
   } catch (error) {
     console.error("API Pitch Error:", error);
